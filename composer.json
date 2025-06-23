@@ -1,0 +1,31 @@
+{
+    "name": "larva/flysystem-tos",
+    "description": "Flysystem adapter for the volc engine TOS storage.",
+    "require": {
+        "league/flysystem": "^2.0|^3.0",
+        "league/mime-type-detection": "^1.0.0",
+        "volcengine/ve-tos-php-sdk": "^2.1"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Larva\\Flysystem\\Tos\\": "src"
+        }
+    },
+    "license": "MIT",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    },
+    "scripts": {
+        "check-style": "./vendor/bin/php-cs-fixer fix --using-cache=no --diff --dry-run --ansi",
+        "fix-style": "./vendor/bin/php-cs-fixer fix --using-cache=no --ansi"
+    },
+    "scripts-descriptions": {
+        "check-style": "Run style checks (only dry run - no fixing!).",
+        "fix-style": "Run style checks and fix violations."
+    }
+}
