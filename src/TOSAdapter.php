@@ -31,6 +31,7 @@ use Tos\Exception\TosClientException;
 use Tos\Exception\TosServerException;
 use Tos\Model\CopyObjectInput;
 use Tos\Model\DeleteObjectInput;
+use Tos\Model\Enum;
 use Tos\Model\GetObjectACLInput;
 use Tos\Model\GetObjectInput;
 use Tos\Model\HeadObjectInput;
@@ -267,7 +268,7 @@ class TOSAdapter implements FilesystemAdapter
      */
     public function deleteDirectory(string $path): void
     {
-
+        $this->client->deleteObject(new DeleteObjectInput($this->bucket, $this->prefixer->prefixPath($path)));
     }
 
     /**
@@ -307,21 +308,15 @@ class TOSAdapter implements FilesystemAdapter
      */
     public function visibility(string $path): FileAttributes
     {
-        try {
-            $input = new GetObjectACLInput($this->bucket, $this->prefixer->prefixPath($path));
-            $acl = $this->client->getObjectAcl($input);
-        } catch (TosClientException|TosServerException $ex) {
-            throw UnableToSetVisibility::atLocation($path, $ex->getMessage(), $ex);
+        $objectOutput = $this->client->getObjectACL(new GetObjectACLInput($this->bucket, $this->prefixer->prefixPath($path)));
+
+        foreach ($objectOutput->getGrants() as $grant) {
+            if ($grant->getPermission() === Enum::ACLPublicRead || $grant->getPermission() === Enum::ACLPublicReadWrite) {
+                return new FileAttributes($path, null, Visibility::PUBLIC);
+            }
         }
-        // 获取访问权限授权组
-        //        foreach ($acl->getGrants() as $grant) {
-        //            echo $grant->getGrantee()->getType() . PHP_EOL;
-        //            echo $grant->getGrantee()->getCanned() . PHP_EOL;
-        //            echo $grant->getPermission() .PHP_EOL;
-        //        }
-        $acl = $acl->getGrants()[0]->getPermission();
-        $visibility = $this->visibility->aclToVisibility($acl);
-        return new FileAttributes($path, null, $visibility);
+
+        return new FileAttributes($path, null, Visibility::PRIVATE);
     }
 
     /**
@@ -450,7 +445,9 @@ class TOSAdapter implements FilesystemAdapter
     {
         $result = [];
         try {
-            $output = $this->client->listObjects(new ListObjectsInput($this->bucket, 1000, $directory));
+            $objectInput = new ListObjectsInput($this->bucket, 1000, $directory);
+            $objectInput->setDelimiter('/');
+            $output = $this->client->listObjects($objectInput);
             $result['NextMarker'] = $output->getNextMarker();
             $result['MaxKeys'] = $output->getMaxKeys();
             $result['Prefix'] = $output->getPrefix();
