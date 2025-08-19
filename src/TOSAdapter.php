@@ -41,7 +41,7 @@ use Tos\Model\PutObjectInput;
 use Tos\TosClient;
 
 /**
- * 阿里云 OSS 适配器
+ * 火山引擎 TOS 适配器
  */
 class TOSAdapter implements FilesystemAdapter
 {
