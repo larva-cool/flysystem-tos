@@ -140,10 +140,17 @@ class TOSAdapter implements FilesystemAdapter
      */
     public function directoryExists(string $path): bool
     {
+        $prefix = $this->prefixer->prefixDirectoryPath($path);
         try {
-            $prefix = $this->prefixer->prefixDirectoryPath($path);
-            $response = $this->client->ListObjects(new ListObjectsInput($this->bucket, 100, $prefix));
-            return is_array($response->getContents());
+            $listObjectsInput = new ListObjectsInput($this->bucket, 1, $prefix);
+            $listObjectsInput->setDelimiter('/');
+            $model = $this->client->ListObjects($listObjectsInput);
+            if ($model === null) {
+                throw new UnableToCheckDirectoryExistence(
+                    \sprintf('Unable to check existence for: %s. The TOS server returns NULL.', $path)
+                );
+            }
+            return $model->getContents() !== [];
         } catch (TosServerException $ex) {
             if ($ex->getStatusCode() == 404) {
                 return false;
