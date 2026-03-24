@@ -150,8 +150,10 @@ class TOSAdapter implements FilesystemAdapter
             $prefix = $this->prefixer->prefixDirectoryPath($path);
             $response = $this->client->ListObjects(new ListObjectsInput($this->bucket, 100, $prefix));
             return is_array($response->getContents());
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosClientException $ex) {
             throw UnableToCheckDirectoryExistence::forLocation($path, $ex);
+        } catch (TosServerException $ex) {
+            return false;
         }
     }
 
@@ -241,7 +243,7 @@ class TOSAdapter implements FilesystemAdapter
         try {
             $response = $this->client->GetObject(new GetObjectInput($this->bucket, $prefixedPath));
             $stream = fopen('php://temp', 'r+');
-            fwrite($stream, (string)$response->getContent());
+            fwrite($stream, (string) $response->getContent());
             rewind($stream);
             return $stream;
         } catch (TosClientException|TosServerException $ex) {
@@ -307,7 +309,6 @@ class TOSAdapter implements FilesystemAdapter
      * 获取对象可见性
      *
      * @throws UnableToRetrieveMetadata
-     * @throws FilesystemException
      */
     public function visibility(string $path): FileAttributes
     {

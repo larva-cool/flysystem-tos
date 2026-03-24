@@ -1,0 +1,6 @@
+.DS_Store
+/.idea
+/.vscode
+/.zed
+/vendor
+Thumbs.db
