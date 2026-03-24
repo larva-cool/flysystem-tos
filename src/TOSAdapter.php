@@ -128,6 +128,9 @@ class TOSAdapter implements FilesystemAdapter
             ));
             return $response->getStatusCode() == 200;
         } catch (TosServerException $ex) {
+            if ($ex->getStatusCode() == 404) {
+                return false;
+            }
             throw UnableToCheckExistence::forLocation($path, $ex);
         }
     }
@@ -142,6 +145,9 @@ class TOSAdapter implements FilesystemAdapter
             $response = $this->client->ListObjects(new ListObjectsInput($this->bucket, 100, $prefix));
             return is_array($response->getContents());
         } catch (TosServerException $ex) {
+            if ($ex->getStatusCode() == 404) {
+                return false;
+            }
             throw UnableToCheckDirectoryExistence::forLocation($path, $ex);
         }
     }
@@ -330,6 +336,9 @@ class TOSAdapter implements FilesystemAdapter
             $lastModified = $dateTime ? strtotime($dateTime) : null;
             return new FileAttributes($path, $fileSize, null, $lastModified, $mimetype, $this->extractExtraMetadata($output->getMeta()));
         } catch (TosServerException $ex) {
+            if ($ex->getStatusCode() == 404) {
+                return new FileAttributes($path);
+            }
             throw UnableToRetrieveMetadata::create($path, $type, $ex->getMessage(), $ex);
         }
     }
