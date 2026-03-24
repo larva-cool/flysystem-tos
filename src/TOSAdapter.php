@@ -27,7 +27,6 @@ use League\Flysystem\Visibility;
 use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use League\MimeTypeDetection\MimeTypeDetector;
 use Throwable;
-use Tos\Exception\TosClientException;
 use Tos\Exception\TosServerException;
 use Tos\Model\CopyObjectInput;
 use Tos\Model\DeleteObjectInput;
@@ -105,8 +104,8 @@ class TOSAdapter implements FilesystemAdapter
         TosClient $client,
         string $bucket,
         string $prefix = '',
-        VisibilityConverter $visibility = null,
-        MimeTypeDetector $mimeTypeDetector = null,
+        ?VisibilityConverter $visibility = null,
+        ?MimeTypeDetector $mimeTypeDetector = null,
         array $options = []
     ) {
         $this->client = $client;
@@ -119,9 +118,6 @@ class TOSAdapter implements FilesystemAdapter
 
     /**
      * 判断文件对象是否存在
-     *
-     * @throws FilesystemException
-     * @throws UnableToCheckExistence
      */
     public function fileExists(string $path): bool
     {
@@ -131,18 +127,13 @@ class TOSAdapter implements FilesystemAdapter
                 $this->prefixer->prefixPath($path)
             ));
             return $response->getStatusCode() == 200;
-        } catch (TosClientException $ex) {
-            throw UnableToCheckExistence::forLocation($path, $ex);
         } catch (TosServerException $ex) {
-            return false;
+            throw UnableToCheckExistence::forLocation($path, $ex);
         }
     }
 
     /**
      * 判断目录是否存在
-     *
-     * @throws FilesystemException
-     * @throws UnableToCheckExistence
      */
     public function directoryExists(string $path): bool
     {
@@ -150,10 +141,8 @@ class TOSAdapter implements FilesystemAdapter
             $prefix = $this->prefixer->prefixDirectoryPath($path);
             $response = $this->client->ListObjects(new ListObjectsInput($this->bucket, 100, $prefix));
             return is_array($response->getContents());
-        } catch (TosClientException $ex) {
-            throw UnableToCheckDirectoryExistence::forLocation($path, $ex);
         } catch (TosServerException $ex) {
-            return false;
+            throw UnableToCheckDirectoryExistence::forLocation($path, $ex);
         }
     }
 
@@ -172,7 +161,7 @@ class TOSAdapter implements FilesystemAdapter
             $input->setACL($this->determineAcl($config));
 
             $this->client->putObject($input);
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             throw UnableToWriteFile::atLocation($path, '', $ex);
         }
     }
@@ -226,7 +215,7 @@ class TOSAdapter implements FilesystemAdapter
             $result = $response->getContent()->getContents();
             $response->getContent()->close();
             return $result;
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             throw UnableToReadFile::fromLocation($path, $ex->getMessage());
         }
     }
@@ -246,7 +235,7 @@ class TOSAdapter implements FilesystemAdapter
             fwrite($stream, (string) $response->getContent());
             rewind($stream);
             return $stream;
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             throw UnableToReadFile::fromLocation($path, $ex->getMessage());
         }
     }
@@ -300,7 +289,7 @@ class TOSAdapter implements FilesystemAdapter
                 $this->visibility->visibilityToAcl($visibility)
             );
             $this->client->putObjectAcl($input);
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             throw UnableToSetVisibility::atLocation($path, $ex->getMessage(), $ex);
         }
     }
@@ -340,8 +329,8 @@ class TOSAdapter implements FilesystemAdapter
             $dateTime = $output->getLastModified() ?? null;
             $lastModified = $dateTime ? strtotime($dateTime) : null;
             return new FileAttributes($path, $fileSize, null, $lastModified, $mimetype, $this->extractExtraMetadata($output->getMeta()));
-        } catch (TosClientException|TosServerException $ex) {
-            return new FileAttributes($path);
+        } catch (TosServerException $ex) {
+            throw UnableToRetrieveMetadata::create($path, $type, $ex->getMessage(), $ex);
         }
     }
 
@@ -423,12 +412,7 @@ class TOSAdapter implements FilesystemAdapter
         }
         //处理文件
         foreach ($response['Contents'] ?? [] as $content) {
-            yield new FileAttributes(
-                $content['Key'],
-                intval($content['Size']),
-                null,
-                strtotime($content['LastModified'])
-            );
+            yield new FileAttributes($content['Key'], intval($content['Size']), null, strtotime($content['LastModified']));
         }
     }
 
@@ -463,7 +447,7 @@ class TOSAdapter implements FilesystemAdapter
                 ];
             }
             unset($output);
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             UnableToListContents::atLocation($directory, $recursive, $ex);
         }
         return $result;
@@ -501,7 +485,7 @@ class TOSAdapter implements FilesystemAdapter
                 $this->bucket,
                 $this->prefixer->prefixPath($source)
             ));
-        } catch (TosClientException|TosServerException $ex) {
+        } catch (TosServerException $ex) {
             throw UnableToCopyFile::fromLocationTo($source, $destination, $ex);
         }
     }
