@@ -326,9 +326,9 @@ class TOSAdapter implements FilesystemAdapter
      * 获取文件元数据
      * @param  string  $path
      * @param  string  $type
-     * @return void
+     * @return FileAttributes
      */
-    private function fetchFileMetadata(string $path, string $type): ?FileAttributes
+    private function fetchFileMetadata(string $path, string $type): FileAttributes
     {
         try {
             $prefixedPath = $this->prefixer->prefixPath($path);
@@ -338,16 +338,9 @@ class TOSAdapter implements FilesystemAdapter
             $fileSize = $fileSize === null ? null : (int) $fileSize;
             $dateTime = $output->getLastModified() ?? null;
             $lastModified = $dateTime ? strtotime($dateTime) : null;
-            return new FileAttributes(
-                $path,
-                $fileSize,
-                null,
-                $lastModified,
-                $mimetype,
-                $this->extractExtraMetadata($output->getMeta())
-            );
+            return new FileAttributes($path, $fileSize, null, $lastModified, $mimetype, $this->extractExtraMetadata($output->getMeta()));
         } catch (TosClientException|TosServerException $ex) {
-            throw UnableToRetrieveMetadata::create($path, $type, '');
+            return new FileAttributes($path);
         }
     }
 
