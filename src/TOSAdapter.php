@@ -240,7 +240,10 @@ class TOSAdapter implements FilesystemAdapter
         $prefixedPath = $this->prefixer->prefixPath($path);
         try {
             $response = $this->client->GetObject(new GetObjectInput($this->bucket, $prefixedPath));
-            return $response->getContent();
+            $stream = fopen('php://temp', 'r+');
+            fwrite($stream, (string)$response->getContent());
+            rewind($stream);
+            return $stream;
         } catch (TosClientException|TosServerException $ex) {
             throw UnableToReadFile::fromLocation($path, $ex->getMessage());
         }
