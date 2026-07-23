@@ -48,7 +48,13 @@ class TOSAdapter implements FilesystemAdapter
      * @var string[]
      */
     public const AVAILABLE_OPTIONS = [
-        'Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-MD5', 'Content-Length', 'ETag', 'Expires',
+        'Cache-Control',
+        'Content-Disposition',
+        'Content-Encoding',
+        'Content-MD5',
+        'Content-Length',
+        'ETag',
+        'Expires',
     ];
 
     /**
@@ -285,7 +291,7 @@ class TOSAdapter implements FilesystemAdapter
      */
     public function createDirectory(string $path, Config $config): void
     {
-        $this->upload(rtrim($path, '/').'/', '', $config);
+        $this->upload(rtrim($path, '/') . '/', '', $config);
     }
 
     /**
@@ -504,6 +510,28 @@ class TOSAdapter implements FilesystemAdapter
         } catch (TosServerException $ex) {
             throw UnableToCopyFile::fromLocationTo($source, $destination, $ex);
         }
+    }
+
+    /**
+     * 获取STS策略.
+     * @return string
+     */
+    public function getStsPolicy(): string
+    {
+        return json_encode([
+            'Statement' => [
+                [
+                    'Effect' => 'Allow',
+                    'Action' => [
+                        'tos:PutObject',
+                        'tos:PutObjectAcl',
+                    ],
+                    'Resource' => [
+                        "trn:tos:*:*:bucket/{$this->bucket}/*",
+                    ],
+                ],
+            ],
+        ]);
     }
 
     /**
