@@ -177,6 +177,7 @@ class TOSAdapter implements FilesystemAdapter
         $key = $this->prefixer->prefixPath($path);
         try {
             $input = new PutObjectInput($this->bucket, $key, $body);
+            $input->setCacheControl('max-age='.$config->get('max_age', '31536000'));
             $input->setACL($this->determineAcl($config));
 
             $this->client->putObject($input);
@@ -291,7 +292,7 @@ class TOSAdapter implements FilesystemAdapter
      */
     public function createDirectory(string $path, Config $config): void
     {
-        $this->upload(rtrim($path, '/') . '/', '', $config);
+        $this->upload(rtrim($path, '/').'/', '', $config);
     }
 
     /**
