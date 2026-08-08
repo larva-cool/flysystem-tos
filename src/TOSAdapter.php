@@ -177,7 +177,7 @@ class TOSAdapter implements FilesystemAdapter
         $key = $this->prefixer->prefixPath($path);
         try {
             $input = new PutObjectInput($this->bucket, $key, $body);
-            $input->setCacheControl('max-age='.$this->options['max_age'] ?? '31536000');
+            $input->setCacheControl('max-age='.($this->options['max_age'] ? $this->options['max_age'] : '31536000'));
             $input->setACL($this->determineAcl($config));
 
             $this->client->putObject($input);
